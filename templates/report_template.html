@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    body {
+      font-family: sans-serif;
+      font-size: 12px;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2, h3 {
+      color: #333;
+    }
+    .meta, .summary {
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      word-wrap: break-word;
+      font-size: 11px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    .chart {
+      margin-top: 30px;
+      text-align: center;
+    }
+    .table-section {
+      page-break-before: always;
+    }
+    .software-header {
+      margin-top: 40px;
+      margin-bottom: 5px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      color: #fff;
+    }
+    .low { background-color: #4caf50; }
+    .medium { background-color: #ff9800; }
+    .high { background-color: #f44336; }
+    .critical { background-color: #9c27b0; }
+    .unknown { background-color: #9e9e9e; }
+    .status-safe { background-color: #4caf50; }
+    .status-possible { background-color: #ff9800; }
+    .status-vulnerable { background-color: #f44336; }
+
+    .overview-box {
+      display: flex;
+      justify-content: space-around;
+      margin: 20px 0;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+    .overview-item {
+      text-align: center;
+    }
+    .overview-item h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+    }
+    .overview-item .value {
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .badge-summary {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+    }
+    .cover-page {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      page-break-after: always;
+    }
+
+    .cover-page img {
+      height: 500px;
+      object-fit: contain;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cover-page">
+    <img src="data:image/png;base64,{{ logo_b64 }}" alt="BeezScan Logo">
+  </div>
+
+  <div class="page-break"></div>
+
+  <h1>{{ title }}</h1>
+  <div class="overview-box">
+    <div class="overview-item">
+      <h3>Total Packages</h3>
+      <div class="value">{{ total_packages }}</div>
+    </div>
+    <div class="overview-item">
+      <h3>Total CVEs (Unpatched)</h3>
+      <div class="value" style="color: #b71c1c">{{ total_vulnerabilities }}</div>
+    </div>
+    <div class="overview-item">
+    <h3>Severity</h3>
+    <div class="value">
+      <span class="badge-summary low">Low ({{ sev_counts.low }})</span>
+      <span class="badge-summary medium" style="background:#ff9800">Med ({{ sev_counts.medium }})</span>
+      <span class="badge-summary high" style="background:#f44336">High ({{ sev_counts.high }})</span>
+      <span class="badge-summary critical" style="background:#9c27b0">Critical ({{ sev_counts.critical }})</span>
+    </div>
+
+    </div>
+  </div>
+
+  <div class="meta">
+    <p><strong>Scan Time:</strong> {{ timestamp }}</p>
+    <p><strong>Total Packages:</strong> {{ total_packages }}</p>
+    <p><strong>Total Vulnerabilities (Unpatched):</strong> {{ total_vulnerabilities }}</p>
+  </div>
+
+  <div class="chart">
+    <h2>CVEs by Severity</h2>
+    <img src="data:image/png;base64,{{ pie_chart_data }}" width="300">
+  </div>
+
+  <div class="summary table-section">
+    <div class="summary">
+  
+      <h2>BeezScan Vulnerability Summary</h2>
+      <table>
+        <tr>
+          <th>Software</th>
+          <th>Number of CVEs</th>
+          <th>Avg CVSS</th>
+          <th>Max CVSS</th>
+        </tr>
+        {% for group in group_summary %}
+        <tr>
+          <td>{{ group.software }}</td>
+          <td>{{ group.count }}</td>
+          <td>{{ group.avg_cvss }}</td>
+          <td>{{ group.max_cvss }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+</div>
+
+  <div class="table-section">
+    <h2>Grouped Vulnerabilities by Software</h2>
+    {% for software, vulns in grouped_vulnerabilities.items() %}
+      <div class="software-header">
+        <h3>{{ software }} ({{ vulns | length }} CVEs)</h3>
+      </div>
+      <table>
+        <colgroup>
+          <col style="width: 20%">
+          <col style="width: 12%">
+          <col style="width: 9%">
+          <col style="width: 8%">
+          <col style="width: 55%">
+        </colgroup>
+        <tr>
+          <th>CVE ID</th>
+          <th>Version</th>
+          <th>Severity</th>
+          <th>CVSS</th>
+          <th>Description</th>
+        </tr>
+
+        {% for vuln in vulns %}
+        <tr>
+          <td>{{ vuln.cve_id }}</td>
+          <td>{{ vuln.installed_version }}</td>
+          <td>
+            {% set s = vuln.cvss_v3 %}
+            {% if s is none %}
+              <span class="badge unknown">Unknown</span>
+            {% elif s < 4 %}
+              <span class="badge low">Low</span>
+            {% elif s < 7 %}
+              <span class="badge medium">Medium</span>
+            {% elif s < 9 %}
+              <span class="badge high">High</span>
+            {% else %}
+              <span class="badge critical">Critical</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set s = vuln.cvss_v3 %}
+            {% if s is none %}
+              <span class="badge unknown">N/A</span>
+            {% elif s < 4 %}
+              <span class="badge low">{{ s }}</span>
+            {% elif s < 7 %}
+              <span class="badge medium">{{ s }}</span>
+            {% elif s < 9 %}
+              <span class="badge high">{{ s }}</span>
+            {% else %}
+              <span class="badge critical">{{ s }}</span>
+            {% endif %}
+          </td>
+          <td>{{ vuln.description }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% endfor %}
+  </div>
+</body>
+</html>

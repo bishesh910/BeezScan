@@ -1,0 +1,6 @@
+__pycache__
+venv
+data/nvd_feeds
+data/cves.db
+data/all_cves.json
+
